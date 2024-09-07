@@ -16,5 +16,6 @@ export const listTokens = async () => {
   });
 
   const tokens = await icpswap.listTokens();
-  console.log("[tokens]", tokens);
+
+  return tokens;
 };
