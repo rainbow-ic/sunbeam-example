@@ -5,23 +5,26 @@ import { PublicPoolOverView } from "@rainbow-ic/sunbeam/src/types/actors/icswap/
 const ICP_CANISTER_ID = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 
 export const getPoolsForToken = async (canisterId: string) => {
-  const agent = new HttpAgent({ host: "https://ic0.app" });
+    const agent = await HttpAgent.create({ host: "https://ic0.app" });
 
-  const icpswap = await DexFactory.create({
-    dex: SupportedDEX.ICPSwap,
-    initArgs: {
-      agent,
-    },
-  });
+    const icpswap = DexFactory.create({
+        dex: SupportedDEX.ICPSwap,
+        initArgs: {
+            agent,
+        },
+    });
 
-  const pools = await icpswap.getPoolsForToken(canisterId);
+    const pools = await icpswap.getPoolsForToken(canisterId);
 
-  return pools;
+    return pools;
 };
 
-export const getPairWithIcp = async (pools: PublicPoolOverView[]) => {
-  return pools.filter(
-    (pool) =>
-      pool.token1Id === ICP_CANISTER_ID || pool.token0Id === ICP_CANISTER_ID
-  );
+export const getPairWithIcp = (pools: PublicPoolOverView[]) => {
+    return pools.filter(
+        (pool) => pool.token1Id === ICP_CANISTER_ID || pool.token0Id === ICP_CANISTER_ID,
+    );
+};
+
+export const getPair = () => {
+    throw "Not implemented";
 };

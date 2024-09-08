@@ -1,32 +1,33 @@
 {
-  "name": "sunbeam-example",
-  "version": "1.0.1",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npx tsx src/index.ts",
-    "cli": "npx tsx src/cli.ts"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "devDependencies": {
-    "@types/chalk-animation": "^1.6.3",
-    "@types/node": "^22.5.4",
-    "typescript": "^5.5.4"
-  },
-  "dependencies": {
-    "@dfinity/agent": "^2.0.0",
-    "@dfinity/identity": "^2.0.0",
-    "@dfinity/ledger-icp": "^2.5.0",
-    "@inquirer/prompts": "^5.5.0",
-    "@inquirer/search": "^1.1.0",
-    "@rainbow-ic/sunbeam": "^0.0.4",
-    "bip39": "^3.1.0",
-    "chalk-animation": "^2.0.3",
-    "dotenv": "^16.4.5",
-    "tsx": "^4.19.0",
-    "tweetnacl": "^1.0.3"
-  }
+    "name": "sunbeam-example",
+    "version": "1.0.1",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "dev": "npx tsx src/index.ts",
+        "cli": "npx tsx src/cli.ts",
+        "swap": "npx tsx src/swap-test.ts"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description": "",
+    "devDependencies": {
+        "@types/chalk-animation": "^1.6.3",
+        "@types/node": "^22.5.4",
+        "typescript": "^5.5.4"
+    },
+    "dependencies": {
+        "@dfinity/agent": "^2.0.0",
+        "@dfinity/identity": "^2.0.0",
+        "@dfinity/ledger-icp": "^2.5.0",
+        "@inquirer/prompts": "^5.5.0",
+        "@inquirer/search": "^1.1.0",
+        "@rainbow-ic/sunbeam": "file:../",
+        "bip39": "^3.1.0",
+        "chalk-animation": "^2.0.3",
+        "dotenv": "^16.4.5",
+        "tsx": "^4.19.0",
+        "tweetnacl": "^1.0.3"
+    }
 }

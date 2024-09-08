@@ -8,31 +8,27 @@ chalkAnimation.rainbow("Welcome to Swap Terminal");
 // List of items to search
 
 const main = async () => {
-  const tokens = await listTokens();
+    const tokens = await listTokens();
 
-  // Prompt the user to search the list
-  const res = await search({
-    message: "Select an token",
-    source: async (input, { signal }) => {
-      if (!input) {
-        return [];
-      }
+    // Prompt the user to search the list
+    const res = await search({
+        message: "Select an token",
+        source: async (input, { signal }) => {
+            const response = tokens.filter(
+                (t) => !input || t.name.toLowerCase().includes(input.toLowerCase()),
+            );
 
-      const response = tokens.filter((t) =>
-        t.name.toLowerCase().includes(input.toLowerCase())
-      );
+            return response.map((t) => {
+                return {
+                    name: `${t.name} - (${t.symbol}) - ${t.address} - Vol 1d ${t.volumeUSD1d} - Vol 7d ${t.volumeUSD7d}`,
+                    value: t.address,
+                    description: t.symbol,
+                };
+            });
+        },
+    });
 
-      return response.map((t) => {
-        return {
-          name: `${t.name} - (${t.symbol}) - ${t.address} - Vol 1d ${t.volumeUSD1d} - Vol 7d ${t.volumeUSD7d}`,
-          value: t.address,
-          description: t.symbol,
-        };
-      });
-    },
-  });
-
-  console.log("Selected token:", res);
+    console.log("Selected token:", res);
 };
 
 main();

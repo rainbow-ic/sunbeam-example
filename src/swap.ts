@@ -6,39 +6,39 @@ import { initWallet } from "./wallet";
 const canisterId = "xmiu5-jqaaa-aaaag-qbz7q-cai";
 
 export const swap = async () => {
-  try {
-    const res = initWallet(process.env.SEED as string);
+    try {
+        const res = initWallet(process.env.SEED as string);
 
-    console.log(res.principal.toString());
+        console.log(res.principal.toString());
 
-    const agent = new HttpAgent({ host: "https://ic0.app" });
-    agent.replaceIdentity(res.identity);
+        const agent = await HttpAgent.create({ host: "https://ic0.app" });
+        agent.replaceIdentity(res.identity);
 
-    const pid = await agent.getPrincipal();
+        const pid = await agent.getPrincipal();
 
-    console.log(`Principal ID: ${pid.toText()}`);
+        console.log(`Principal ID: ${pid.toText()}`);
 
-    const swapService = SwapPoolFactory.create({
-      dex: SupportedDEX.ICPSwap,
-      initArgs: {
-        id: canisterId,
-        agent,
-      },
-    });
+        const swapService = SwapPoolFactory.create({
+            dex: SupportedDEX.ICPSwap,
+            initArgs: {
+                id: canisterId,
+                agent,
+            },
+        });
 
-    const metadata = await swapService.getMetadata();
-    console.log("metadata", metadata);
+        const metadata = await swapService.getMetadata();
+        console.log("metadata", metadata);
 
-    const slippage = 0;
+        const slippage = 0;
 
-    const swapRes = await swapService.swap({
-      amountIn: "10000000",
-      zeroForOne: false,
-      amountOutMinimum: slippage.toString(),
-    });
+        const swapRes = await swapService.swap({
+            amountIn: "10000000",
+            zeroForOne: false,
+            amountOutMinimum: slippage.toString(),
+        });
 
-    console.log("swapRes", swapRes);
-  } catch (error) {
-    console.error(error);
-  }
+        console.log("swapRes", swapRes);
+    } catch (error) {
+        console.error(error);
+    }
 };
