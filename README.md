@@ -20,6 +20,8 @@ SEED=
 
 [source code](src/cli.ts)
 
+[video demo](https://youtu.be/CpMjEedSA3A)
+
 ### List token frontend
 
 ![Example Image](images/token-list.png)
