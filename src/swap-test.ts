@@ -2,7 +2,7 @@ import chalkAnimation from "chalk-animation";
 import search from "@inquirer/search";
 
 import { HttpAgent } from "@dfinity/agent";
-import { DexFactory, SupportedDEX, SwapPoolFactory } from "@rainbow-ic/sunbeam";
+import { DexFactory, SupportedDEX } from "@rainbow-ic/sunbeam";
 import { initWallet } from "./wallet";
 import { getPairWithIcp, getPoolsForToken } from "./getPoolsForToken";
 
@@ -10,27 +10,25 @@ import { getPairWithIcp, getPoolsForToken } from "./getPoolsForToken";
 chalkAnimation.rainbow("Welcome to Swap Terminal");
 
 const main = async () => {
+    // Recreate the wallet from a seed phrase
     const wallet = initWallet(process.env.SEED as string);
-
-    console.log("wallet principal:", wallet.principal.toString());
-
     const agent = await HttpAgent.create({ host: "https://ic0.app" });
     agent.replaceIdentity(wallet.identity);
-
     const pid = await agent.getPrincipal();
-
     console.log(`Principal ID: ${pid.toText()}`);
 
-    const icpswap = DexFactory.create({
+    /// Create a dex instance
+    const dex = DexFactory.create({
         dex: SupportedDEX.ICPSwap,
         initArgs: {
             agent,
         },
     });
 
-    const tokens = await icpswap.listTokens();
+    /// Fetch all available tokens
+    const tokens = await dex.listTokens();
 
-    // Prompt the user to search the list
+    // Prompt the user to select a token
     const tokenCanisterId = await search({
         message: "Select a token: ",
         source: async (input, { signal }) => {
@@ -48,26 +46,20 @@ const main = async () => {
         },
     });
 
-    const pools = await getPoolsForToken(tokenCanisterId);
+    // Fetch all available trading pairs for the selected token
+    const pools = await dex.getPools(tokenCanisterId);
 
+    /// Prompt the user to select a pool
     const pool = getPairWithIcp(pools);
 
-    console.log("pool id", pool);
+    console.log("pool:", pool);
 
-    const swapService = SwapPoolFactory.create({
-        dex: SupportedDEX.ICPSwap,
-        initArgs: {
-            id: pool[0].pool,
-            agent,
-        },
-    });
-
-    const metadata = await swapService.getMetadata();
-    console.log("metadata", metadata);
+    const metadata = await pool.getMetadata();
+    console.log("pool metadata", metadata);
 
     const minOut = 0;
 
-    const swapRes = await swapService.swap({
+    const swapRes = await pool.swap({
         amountIn: "10000000",
         zeroForOne: false,
         amountOutMinimum: minOut.toString(),
