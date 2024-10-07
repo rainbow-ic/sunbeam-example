@@ -4,7 +4,7 @@ import { IcrcLedgerCanister } from "@dfinity/ledger-icrc";
 import { Principal } from "@dfinity/principal";
 import {
   KongSwap,
-  KONGSWAP_BACKEND_CANISTER,
+  KONGSWAP_BACKEND_TEST_CANISTER,
   KongSwapPool,
 } from "@rainbow-ic/sunbeam";
 
@@ -24,15 +24,14 @@ const main = async () => {
 
   // zdzgz-siaaa-aaaar-qaiba-cai = ckUSDT in Kong test
   const poolAddress =
-    "IC.lkr76-qyaaa-aaaam-adlba-cai_IC.zdzgz-siaaa-aaaar-qaiba-cai";
+    "IC.jzo46-yaaaa-aaaam-adlpq-cai_IC.zdzgz-siaaa-aaaar-qaiba-cai";
   const pool_ids = poolAddress.split("_");
   const token1 = pool_ids[0];
   const token1Canister = token1.replace("IC.", "");
   // WARNING: This is a hardcoded token data for token
   const token1Data = {
-    symbol: "test",
-    name: "test",
     address: token1Canister,
+    chain: "IC",
   };
 
   const token2 = pool_ids[1];
@@ -63,7 +62,7 @@ const main = async () => {
         subaccount: [],
       },
       spender: {
-        owner: Principal.fromText(KONGSWAP_BACKEND_CANISTER),
+        owner: Principal.fromText(KONGSWAP_BACKEND_TEST_CANISTER),
         subaccount: [],
       },
     }),
@@ -75,7 +74,7 @@ const main = async () => {
     ptask.push(
       token2Approve({
         spender: {
-          owner: Principal.fromText(KONGSWAP_BACKEND_CANISTER),
+          owner: Principal.fromText(KONGSWAP_BACKEND_TEST_CANISTER),
           subaccount: [],
         },
         amount: BigInt(1000000000000000),
@@ -98,11 +97,16 @@ const main = async () => {
     agent,
     poolData,
   });
+  console.log("getPoolData", pool.getPoolData());
 
   const metadata = await pool.getMetadata();
   console.log("metadata", metadata);
 
-  const tokenIn = token2;
+  console.log("pools", pool.getPoolData());
+
+  const swapPool = await metadata.pools[0];
+
+  const tokenIn = token2Canister;
   const tokenOut = token1;
   const amountIn = BigInt(1_000_000);
 
@@ -111,34 +115,49 @@ const main = async () => {
   let tokenOutChain;
   let tokenOutAddress;
 
-  if (metadata.address_0 === tokenIn) {
-    tokenInChain = metadata.chain_0;
-    tokenInAddress = metadata.address_0;
-    tokenOutChain = metadata.chain_1;
-    tokenOutAddress = metadata.address_1;
+  if (swapPool.address_0 === tokenIn) {
+    tokenInChain = swapPool.chain_0;
+    tokenInAddress = swapPool.address_0;
+    tokenOutChain = swapPool.chain_1;
+    tokenOutAddress = swapPool.address_1;
   } else {
-    tokenInChain = metadata.chain_1;
-    tokenInAddress = metadata.address_1;
-    tokenOutChain = metadata.chain_0;
-    tokenOutAddress = metadata.address_0;
+    tokenInChain = swapPool.chain_1;
+    tokenInAddress = swapPool.address_1;
+    tokenOutChain = swapPool.chain_0;
+    tokenOutAddress = swapPool.address_0;
   }
 
-  const quote = await pool.quote({
-    tokenIn,
-    amountIn,
-    tokenOut,
-  });
+  const slippage = 1;
+
+  const [quote, max_slippage] = await Promise.all([
+    pool.quote({
+      tokenIn: {
+        address: tokenIn,
+        chain: tokenInChain,
+      },
+      amountIn,
+      slippage,
+    }),
+    pool.getMaxSlippage({
+      tokenIn: {
+        address: tokenIn,
+        chain: tokenInChain,
+      },
+      amountIn,
+      slippage,
+    }),
+  ]);
 
   console.log("quote", quote);
 
-  let swapArgs;
-
   const swap1Res = await pool.swap({
-    tokenIn: `${tokenInChain}.${tokenInAddress}`,
-    amountIn: quote.pay_amount,
-    tokenOut: `${tokenOutChain}.${tokenOutAddress}`,
-    amountOut: quote.receive_amount,
-    slippage: quote.slippage,
+    tokenIn: {
+      address: tokenIn,
+      chain: tokenInChain,
+    },
+    amountIn: amountIn,
+    amountOut: quote,
+    slippage: max_slippage,
   });
 
   console.log("swap1Res", swap1Res);
@@ -159,7 +178,11 @@ const main = async () => {
 
   //   console.log("swap2Res", swap2Res);
 
-  console.timeEnd("swap");
+  // console.timeEnd("swap");
 };
 
-main();
+try {
+  main();
+} catch (e) {
+  console.log(e);
+}
