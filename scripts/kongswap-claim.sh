@@ -2,7 +2,7 @@ FAUCET_CANISTER="ohr23-xqaaa-aaaar-qahqq-cai"
 
 CKUSDT_CANISTER="zdzgz-siaaa-aaaar-qaiba-cai"
 
-CLAIM_WALLET="tnpkb-asm5y-7bfpb-ft7ee-7hq4j-wdixs-lenks-syvfm-nbowf-mgvtf-hae"
+CLAIM_WALLET="aqwf6-vlwzu-7jwxh-abe6t-5irfu-62w7m-caq6j-dzto5-saabm-ru5sz-aae"
 
 PAY_AMOUNT=80_000_000
 

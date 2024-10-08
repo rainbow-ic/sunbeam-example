@@ -3,6 +3,8 @@ import { initWallet } from "./wallet";
 import { IcrcLedgerCanister } from "@dfinity/ledger-icrc";
 import { Principal } from "@dfinity/principal";
 import {
+  Agent,
+  kongswap,
   KongSwap,
   KONGSWAP_BACKEND_TEST_CANISTER,
   KongSwapPool,
@@ -13,7 +15,7 @@ const main = async () => {
 
   console.log("Using wallet with principal ID: " + wallet.principal.toString());
 
-  const agent = HttpAgent.createSync({
+  const agent: Agent = HttpAgent.createSync({
     host: "https://ic0.app",
     identity: wallet.identity,
   });
@@ -87,24 +89,16 @@ const main = async () => {
 
   console.time("swap");
 
-  const poolData = {
-    address: poolAddress,
-    token1: token1Data,
-    token2: token2Data,
-  };
+  const pool = await dex.getPool(token1Data, token2Data);
 
-  const pool = new KongSwapPool({
-    agent,
-    poolData,
-  });
-  console.log("getPoolData", pool.getPoolData());
+  if (!pool) {
+    throw new Error("Pool not found");
+  }
 
-  const metadata = await pool.getMetadata();
-  console.log("metadata", metadata);
+  const poolInfo = await pool.getLPInfo();
+  console.log("poolInfo", poolInfo);
 
-  console.log("pools", pool.getPoolData());
-
-  const swapPool = await metadata.pools[0];
+  if (!poolInfo) return;
 
   const tokenIn = token2Canister;
   const tokenOut = token1;
@@ -115,16 +109,16 @@ const main = async () => {
   let tokenOutChain;
   let tokenOutAddress;
 
-  if (swapPool.address_0 === tokenIn) {
-    tokenInChain = swapPool.chain_0;
-    tokenInAddress = swapPool.address_0;
-    tokenOutChain = swapPool.chain_1;
-    tokenOutAddress = swapPool.address_1;
+  if (poolInfo.token1Address === tokenIn) {
+    tokenInChain = poolInfo.token1Chain!;
+    tokenInAddress = poolInfo.token1Address;
+    tokenOutChain = poolInfo.token2Chain;
+    tokenOutAddress = poolInfo.token2Address;
   } else {
-    tokenInChain = swapPool.chain_1;
-    tokenInAddress = swapPool.address_1;
-    tokenOutChain = swapPool.chain_0;
-    tokenOutAddress = swapPool.address_0;
+    tokenInChain = poolInfo.token2Chain!;
+    tokenInAddress = poolInfo.token2Address;
+    tokenOutChain = poolInfo.token1Chain;
+    tokenOutAddress = poolInfo.token1Address;
   }
 
   const slippage = 1;
