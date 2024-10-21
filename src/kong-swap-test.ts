@@ -7,6 +7,7 @@ import {
   KongSwap,
   KONGSWAP_BACKEND_CANISTER,
   KONGSWAP_BACKEND_TEST_CANISTER,
+  KongSwapNonLPPool,
   KongSwapPool,
 } from "@rainbow-ic/sunbeam";
 
@@ -25,35 +26,27 @@ const main = async () => {
     address: KONGSWAP_BACKEND_TEST_CANISTER,
   });
 
-  // zdzgz-siaaa-aaaar-qaiba-cai = ckUSDT in Kong test
-  const poolAddress =
-    "IC.jzo46-yaaaa-aaaam-adlpq-cai_IC.zdzgz-siaaa-aaaar-qaiba-cai";
-  const pool_ids = poolAddress.split("_");
-  const token1 = pool_ids[0];
-  const token1Canister = token1.replace("IC.", "");
-  // WARNING: This is a hardcoded token data for token
-  const token1Data = {
-    address: token1Canister,
+  const token1 = {
+    address: "ji7sf-miaaa-aaaam-admrq-cai",
     chain: "IC",
+    token: "Yangt",
   };
 
-  const token2 = pool_ids[1];
-  const token2Canister = token2.replace("IC.", "");
-  const token2Data = await dex.getToken(token2);
-
-  if (!token2Data) {
-    throw new Error("Token not found");
-  }
+  const token2 = {
+    address: "nppha-riaaa-aaaal-ajf2q-cai",
+    chain: "IC",
+    token: "ICP",
+  };
 
   const { approve: token1Approve, allowance: token1Allowance } =
     IcrcLedgerCanister.create({
       agent,
-      canisterId: Principal.fromText(token1Canister),
+      canisterId: Principal.fromText(token1.address),
     });
   const { approve: token2Approve, allowance: token2Allowance } =
     IcrcLedgerCanister.create({
       agent,
-      canisterId: Principal.fromText(token2Data.canister_id),
+      canisterId: Principal.fromText(token2.address),
     });
 
   const ptask = [];
@@ -90,66 +83,35 @@ const main = async () => {
 
   console.time("swap");
 
-  const pool = await dex.getPool(token1Data, token2Data);
-
-  if (!pool) {
-    throw new Error("Pool not found");
-  }
-
-  const poolInfo = await pool.getLPInfo();
-  console.log("poolInfo", poolInfo);
-
-  if (!poolInfo) return;
-
-  const tokenIn = token2Canister;
-  const tokenOut = token1;
   const amountIn = BigInt(1_000_000);
 
-  let tokenInChain;
-  let tokenInAddress;
-  let tokenOutChain;
-  let tokenOutAddress;
+  const poolInfo = {
+    address: "",
+    token1: token1,
+    token2: token2,
+  };
 
-  if (poolInfo.token1Address === tokenIn) {
-    tokenInChain = poolInfo.token1Chain!;
-    tokenInAddress = poolInfo.token1Address;
-    tokenOutChain = poolInfo.token2Chain;
-    tokenOutAddress = poolInfo.token2Address;
-  } else {
-    tokenInChain = poolInfo.token2Chain!;
-    tokenInAddress = poolInfo.token2Address;
-    tokenOutChain = poolInfo.token1Chain;
-    tokenOutAddress = poolInfo.token1Address;
-  }
+  const nonLPPool = new KongSwapNonLPPool({
+    agent,
+    address: KONGSWAP_BACKEND_TEST_CANISTER,
+    poolInfo,
+  });
 
-  const slippage = 1;
-
-  const [quote, max_slippage] = await Promise.all([
-    pool.quote({
-      tokenIn: {
-        address: tokenIn,
-        chain: tokenInChain,
-      },
-      amountIn,
-      slippage,
-    }),
-    pool.getMaxSlippage({
-      tokenIn: {
-        address: tokenIn,
-        chain: tokenInChain,
-      },
-      amountIn,
-      slippage,
-    }),
-  ]);
-
+  const quote = await nonLPPool.quote({
+    tokenIn: token2,
+    amountIn: amountIn,
+    slippage: 0.01,
+  });
   console.log("quote", quote);
 
-  const swap1Res = await pool.swap({
-    tokenIn: {
-      address: tokenIn,
-      chain: tokenInChain,
-    },
+  const max_slippage = await nonLPPool.getMaxSlippage({
+    tokenIn: token2,
+    amountIn: amountIn,
+    slippage: 0.01,
+  });
+
+  const swap1Res = await nonLPPool.swap({
+    tokenIn: token2,
     amountIn: amountIn,
     amountOut: quote,
     slippage: max_slippage,

@@ -1,0 +1,1 @@
+dfx canister call --ic 2ipq2-uqaaa-aaaar-qailq-cai swap_amounts '("ICP", 15_000_000, "ckETH")'
