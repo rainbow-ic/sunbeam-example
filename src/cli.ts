@@ -18,22 +18,22 @@ import { ICPSwap } from "@rainbow-ic/sunbeam/src/services/ICPSwap";
 // List of items to search
 
 function getDecimals(meta: [string, any][]): bigint | undefined {
-  for (const [key, value] of meta) {
-    if (key === "icrc1:decimals" && value.Nat !== undefined) {
-      return value.Nat;
+    for (const [key, value] of meta) {
+        if (key === "icrc1:decimals" && value.Nat !== undefined) {
+            return value.Nat;
+        }
     }
-  }
-  return undefined;
+    return undefined;
 }
 
 function truncateBalance(balance: bigint, decimals: bigint): string {
-  const divisor = Number(BigInt(10) ** decimals);
-  const truncatedBalance = Number(balance) / divisor;
-  return truncatedBalance.toFixed(5);
+    const divisor = Number(BigInt(10) ** decimals);
+    const truncatedBalance = Number(balance) / divisor;
+    return truncatedBalance.toFixed(5);
 }
 
 const main = async () => {
-  const wallet = initWallet(process.env.SEED as string);
+    const wallet = initWallet(process.env.SEED as string);
 
   console.log("Using wallet with principal ID: " + wallet.principal.toString());
 
@@ -122,7 +122,7 @@ const main = async () => {
     token1Metadata({}),
   ]);
 
-  spinner.succeed("Fetched token balances and metadata");
+    const tokens: Token[] = await dex.listTokens();
 
   const token1Decimals = getDecimals(token1Meta) ?? BigInt(1e8);
   const token2Decimals = getDecimals(token2Meta) ?? BigInt(1e8);
@@ -158,9 +158,8 @@ const main = async () => {
           currentBal: userToken2Bal,
           decimals: Number(token2Decimals),
         },
-      },
-    ],
-  });
+    });
+    const [token1, token2] = selectedPool.getTokens();
 
   const amount = await input({
     message: `Enter the amount to swap (in ${selectTokenSwap.symbol})`,
@@ -173,11 +172,26 @@ const main = async () => {
     return;
   }
 
-  const swapSpinner = ora("Swapping tokens...").start();
+    const [userToken1Bal, userToken2Bal, token1Meta, token2Meta]: [
+        bigint,
+        bigint,
+        [string, any][],
+        [string, any][],
+    ] = await Promise.all([
+        token0Balance({
+            owner: wallet.principal,
+        }),
+        token1Balance({
+            owner: wallet.principal,
+        }),
+        token0Metadata({}),
+        token1Metadata({}),
+    ]);
 
   console.log(selectedPool);
 
-  console.log(swapAmount);
+    const token1Decimals = getDecimals(token1Meta) ?? BigInt(1e8);
+    const token2Decimals = getDecimals(token2Meta) ?? BigInt(1e8);
 
   const swapRes = await selectedPool.swap({
     tokenIn: selectedToken,
@@ -185,9 +199,62 @@ const main = async () => {
     
   });
 
-  console.log(swapRes);
+    console.log(`Your balance for ${token1.symbol} is ${truncatedToken1Bal}`);
+    console.log(`Your balance for ${token2.symbol} is ${truncatedToken2Bal}`);
 
-  swapSpinner.succeed("Swapped tokens");
+    const selectTokenSwap: {
+        address: string;
+        symbol: string;
+        currentBal: bigint;
+        decimals: number;
+    } = await select({
+        message: "Select a token to swap",
+        choices: [
+            {
+                name: `${token1.symbol} - ${truncatedToken1Bal}`,
+                value: {
+                    address: token1.address,
+                    symbol: token1.symbol,
+                    currentBal: userToken1Bal,
+                    decimals: Number(token1Decimals),
+                },
+            },
+            {
+                name: `${token2.symbol} - ${truncatedToken2Bal}`,
+                value: {
+                    address: token2.address,
+                    symbol: token2.symbol,
+                    currentBal: userToken2Bal,
+                    decimals: Number(token2Decimals),
+                },
+            },
+        ],
+    });
+
+    const amount = await input({
+        message: `Enter the amount to swap (in ${selectTokenSwap.symbol})`,
+    });
+    const swapAmount = BigInt(amount) * BigInt(10) ** BigInt(selectTokenSwap.decimals);
+
+    if (selectTokenSwap.currentBal < swapAmount) {
+        console.error("Insufficient balance");
+        return;
+    }
+
+    const swapSpinner = ora("Swapping tokens...").start();
+
+    console.log(selectedPool);
+
+    console.log(swapAmount);
+
+    const swapRes = await selectedPool.swap({
+        tokenIn: selectedToken,
+        amountIn: swapAmount,
+    });
+
+    console.log(swapRes);
+
+    swapSpinner.succeed("Swapped tokens");
 };
 
 main();
