@@ -10,13 +10,20 @@ const list_token = async () => {
     host: "https://ic0.app",
   });
 
-  const dex = new KongSwap({
+  const kongswap = new KongSwap({
     agent,
   });
 
-  const tokens = await dex.listTokens();
+  const icpswap = new ICPSwap({
+    agent,
+  });
+
+  const tokens = await kongswap.listTokens();
+
+  const icsTokens = await icpswap.listTokens();
 
   console.log("tokens", tokens);
+  console.log("icsTokens", icsTokens);
 };
 
 const list_pools = async () => {
@@ -67,6 +74,6 @@ const list_icpswap_pools = async () => {
   console.log("pool", pool);
 };
 
-// list_token();
-list_pools();
+list_token();
+// list_pools();
 // list_icpswap_pools();
