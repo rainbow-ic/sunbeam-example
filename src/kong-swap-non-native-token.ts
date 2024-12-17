@@ -1,10 +1,12 @@
-import { HttpAgent } from "@dfinity/agent";
+import { Agent, HttpAgent } from "@dfinity/agent";
 import { initWallet } from "./wallet";
 import { IcrcLedgerCanister } from "@dfinity/ledger-icrc";
 import { Principal } from "@dfinity/principal";
 import {
+  kongswap,
   KongSwap,
   KONGSWAP_BACKEND_CANISTER,
+  KONGSWAP_BACKEND_TEST_CANISTER,
   KongSwapPool,
 } from "@rainbow-ic/sunbeam";
 
@@ -13,26 +15,26 @@ const main = async () => {
 
   console.log("Using wallet with principal ID: " + wallet.principal.toString());
 
-  const agent = HttpAgent.createSync({
+  const agent: Agent = HttpAgent.createSync({
     host: "https://ic0.app",
     identity: wallet.identity,
   });
 
   const dex = new KongSwap({
     agent,
+    address: KONGSWAP_BACKEND_TEST_CANISTER,
   });
 
   // zdzgz-siaaa-aaaar-qaiba-cai = ckUSDT in Kong test
   const poolAddress =
-    "IC.lkr76-qyaaa-aaaam-adlba-cai_IC.zdzgz-siaaa-aaaar-qaiba-cai";
+    "IC.jzo46-yaaaa-aaaam-adlpq-cai_IC.zdzgz-siaaa-aaaar-qaiba-cai";
   const pool_ids = poolAddress.split("_");
   const token1 = pool_ids[0];
   const token1Canister = token1.replace("IC.", "");
   // WARNING: This is a hardcoded token data for token
   const token1Data = {
-    symbol: "test",
-    name: "test",
     address: token1Canister,
+    chain: "IC",
   };
 
   const token2 = pool_ids[1];
@@ -63,7 +65,7 @@ const main = async () => {
         subaccount: [],
       },
       spender: {
-        owner: Principal.fromText(KONGSWAP_BACKEND_CANISTER),
+        owner: Principal.fromText(KONGSWAP_BACKEND_TEST_CANISTER),
         subaccount: [],
       },
     }),
@@ -75,7 +77,7 @@ const main = async () => {
     ptask.push(
       token2Approve({
         spender: {
-          owner: Principal.fromText(KONGSWAP_BACKEND_CANISTER),
+          owner: Principal.fromText(KONGSWAP_BACKEND_TEST_CANISTER),
           subaccount: [],
         },
         amount: BigInt(1000000000000000),
@@ -88,21 +90,18 @@ const main = async () => {
 
   console.time("swap");
 
-  const poolData = {
-    address: poolAddress,
-    token1: token1Data,
-    token2: token2Data,
-  };
+  const pool = await dex.getPool(token1Data, token2Data);
 
-  const pool = new KongSwapPool({
-    agent,
-    poolData,
-  });
+  if (!pool) {
+    throw new Error("Pool not found");
+  }
 
-  const metadata = await pool.getMetadata();
-  console.log("metadata", metadata);
+  const poolInfo = await pool.getLPInfo();
+  console.log("poolInfo", poolInfo);
 
-  const tokenIn = token2;
+  if (!poolInfo) return;
+
+  const tokenIn = token2Canister;
   const tokenOut = token1;
   const amountIn = BigInt(1_000_000);
 
@@ -111,34 +110,49 @@ const main = async () => {
   let tokenOutChain;
   let tokenOutAddress;
 
-  if (metadata.address_0 === tokenIn) {
-    tokenInChain = metadata.chain_0;
-    tokenInAddress = metadata.address_0;
-    tokenOutChain = metadata.chain_1;
-    tokenOutAddress = metadata.address_1;
+  if (poolInfo.token1Address === tokenIn) {
+    tokenInChain = poolInfo.token1Chain!;
+    tokenInAddress = poolInfo.token1Address;
+    tokenOutChain = poolInfo.token2Chain;
+    tokenOutAddress = poolInfo.token2Address;
   } else {
-    tokenInChain = metadata.chain_1;
-    tokenInAddress = metadata.address_1;
-    tokenOutChain = metadata.chain_0;
-    tokenOutAddress = metadata.address_0;
+    tokenInChain = poolInfo.token2Chain!;
+    tokenInAddress = poolInfo.token2Address;
+    tokenOutChain = poolInfo.token1Chain;
+    tokenOutAddress = poolInfo.token1Address;
   }
 
-  const quote = await pool.quote({
-    tokenIn,
-    amountIn,
-    tokenOut,
-  });
+  const slippage = 1;
+
+  const [quote, max_slippage] = await Promise.all([
+    pool.quote({
+      tokenIn: {
+        address: tokenIn,
+        chain: tokenInChain,
+      },
+      amountIn,
+      slippage,
+    }),
+    pool.getMaxSlippage({
+      tokenIn: {
+        address: tokenIn,
+        chain: tokenInChain,
+      },
+      amountIn,
+      slippage,
+    }),
+  ]);
 
   console.log("quote", quote);
 
-  let swapArgs;
-
   const swap1Res = await pool.swap({
-    tokenIn: `${tokenInChain}.${tokenInAddress}`,
-    amountIn: quote.pay_amount,
-    tokenOut: `${tokenOutChain}.${tokenOutAddress}`,
-    amountOut: quote.receive_amount,
-    slippage: quote.slippage,
+    tokenIn: {
+      address: tokenIn,
+      chain: tokenInChain,
+    },
+    amountIn: amountIn,
+    amountOut: quote,
+    slippage: max_slippage,
   });
 
   console.log("swap1Res", swap1Res);
@@ -159,7 +173,11 @@ const main = async () => {
 
   //   console.log("swap2Res", swap2Res);
 
-  console.timeEnd("swap");
+  // console.timeEnd("swap");
 };
 
-main();
+try {
+  main();
+} catch (e) {
+  console.log(e);
+}

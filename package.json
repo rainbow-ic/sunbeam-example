@@ -14,14 +14,15 @@
   "devDependencies": {
     "@types/chalk-animation": "^1.6.3",
     "@types/node": "^22.5.4",
+    "rollup": "^4.24.0",
     "typescript": "^5.5.4"
   },
   "dependencies": {
-    "@dfinity/agent": "^2.0.0",
-    "@dfinity/identity": "^2.0.0",
-    "@dfinity/ledger-icp": "^2.5.0",
-    "@dfinity/ledger-icrc": "^2.5.0",
-    "@dfinity/principal": "^2.0.0",
+    "@dfinity/agent": "^2.1.2",
+    "@dfinity/identity": "^2.1.2",
+    "@dfinity/ledger-icp": "^2.6.0",
+    "@dfinity/ledger-icrc": "^2.6.0",
+    "@dfinity/principal": "^2.1.2",
     "@inquirer/prompts": "^5.5.0",
     "@inquirer/search": "^1.1.0",
     "@inquirer/select": "^2.5.0",
