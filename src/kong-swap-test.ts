@@ -18,21 +18,14 @@ const main = async () => {
     identity: wallet.identity,
   });
 
-  const dex = new KongSwap({
-    agent,
-    address: KONGSWAP_BACKEND_TEST_CANISTER,
-  });
-
   const tokenIn = {
-    address: "rh2pm-ryaaa-aaaan-qeniq-cai",
     chain: "IC",
-    token: "EXE",
+    address: "ryjl3-tyaaa-aaaaa-aaaba-cai",
   };
 
   const tokenOut = {
-    address: "ryjl3-tyaaa-aaaaa-aaaba-cai",
     chain: "IC",
-    token: "ICP",
+    address: "ywjxj-uqaaa-aaaam-qcabq-cai",
   };
 
   // const res = await Promise.all(ptask);

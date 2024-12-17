@@ -60,6 +60,24 @@ const main = async () => {
   const swapRes = await pool.swap(swapArgs);
 
   console.log("swapRes: ", swapRes);
+
+  const quoteSell = await pool.quote({
+    tokenIn: tokenOut,
+    amountIn: swapRes,
+    slippage: 0,
+  });
+
+  const swapSellArgs = {
+    tokenIn: tokenOut,
+    amountOut: quoteSell,
+    amountIn: swapRes,
+    slippage: 0,
+  };
+
+  const ledgerTxsSell = await pool.prepareSwap(swapSellArgs);
+  const swapSellRes = await pool.swap(swapSellArgs);
+
+  console.log("swapSellRes: ", swapSellRes);
 };
 
 main();
